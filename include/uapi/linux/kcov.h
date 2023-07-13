@@ -50,6 +50,10 @@ enum {
 #define KCOV_SUBSYSTEM_COMMON	(0x00ull << 56)
 #define KCOV_SUBSYSTEM_USB	(0x01ull << 56)
 
+// ADDITION
+#define KCOV_SUBSYSTEM_NVME   (0x02ull << 56)
+// END ADDITION
+
 #define KCOV_SUBSYSTEM_MASK	(0xffull << 56)
 #define KCOV_INSTANCE_MASK	(0xffffffffull)
 

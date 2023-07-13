@@ -18,6 +18,10 @@
 
 #include "nvmet.h"
 
+// ADDITION
+#include <linux/kcov.h>
+// END ADDITION
+
 #define NVMET_TCP_DEF_INLINE_DATA_SIZE	(4 * PAGE_SIZE)
 
 static int param_store_val(const char *str, int *val, int min, int max)
@@ -1106,18 +1110,33 @@ static int nvmet_tcp_try_recv_pdu(struct nvmet_tcp_queue *queue)
 	struct kvec iov;
 	struct msghdr msg = { .msg_flags = MSG_DONTWAIT };
 
+	// ADDITION
+	int res;
+	printk("[AZ] [nvmet]: nvmet_tcp_try_recv_pdu: entered function\n");
+	// END ADDITION
+
 recv:
 	iov.iov_base = (void *)&queue->pdu + queue->offset;
 	iov.iov_len = queue->left;
 	len = kernel_recvmsg(queue->sock, &msg, &iov, 1,
 			iov.iov_len, msg.msg_flags);
-	if (unlikely(len < 0))
+
+	// ADDITION
+	printk("[AZ]: msg->kcov_handle == %lld\n", msghdr_get_kcov_handle(&msg));
+	kcov_remote_start_common(msghdr_get_kcov_handle(&msg));
+	// END ADDITION
+
+	if (unlikely(len < 0)) {
+		kcov_remote_stop();
 		return len;
+	}
 
 	queue->offset += len;
 	queue->left -= len;
-	if (queue->left)
+	if (queue->left) {
+		kcov_remote_stop();
 		return -EAGAIN;
+	}
 
 	if (queue->offset == sizeof(struct nvme_tcp_hdr)) {
 		u8 hdgst = nvmet_tcp_hdgst_len(queue);
@@ -1125,11 +1144,13 @@ recv:
 		if (unlikely(!nvmet_tcp_pdu_valid(hdr->type))) {
 			pr_err("unexpected pdu type %d\n", hdr->type);
 			nvmet_tcp_fatal_error(queue);
+			kcov_remote_stop();
 			return -EIO;
 		}
 
 		if (unlikely(hdr->hlen != nvmet_tcp_pdu_size(hdr->type))) {
 			pr_err("pdu %d bad hlen %d\n", hdr->type, hdr->hlen);
+			kcov_remote_stop();
 			return -EIO;
 		}
 
@@ -1140,16 +1161,24 @@ recv:
 	if (queue->hdr_digest &&
 	    nvmet_tcp_verify_hdgst(queue, &queue->pdu, hdr->hlen)) {
 		nvmet_tcp_fatal_error(queue); /* fatal */
+		kcov_remote_stop();
 		return -EPROTO;
 	}
 
 	if (queue->data_digest &&
 	    nvmet_tcp_check_ddgst(queue, &queue->pdu)) {
 		nvmet_tcp_fatal_error(queue); /* fatal */
+		kcov_remote_stop();
 		return -EPROTO;
 	}
 
-	return nvmet_tcp_done_recv_pdu(queue);
+	// ADDITION
+	res = nvmet_tcp_done_recv_pdu(queue);
+	kcov_remote_stop();
+	return res;
+	//END ADDITION
+	
+	//return nvmet_tcp_done_recv_pdu(queue);
 }
 
 static void nvmet_tcp_prep_recv_ddgst(struct nvmet_tcp_cmd *cmd)

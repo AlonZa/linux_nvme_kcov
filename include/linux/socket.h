@@ -77,6 +77,12 @@ struct msghdr {
 	struct ubuf_info *msg_ubuf;
 	int (*sg_from_iter)(struct sock *sk, struct sk_buff *skb,
 			    struct iov_iter *from, size_t length);
+
+	// ADDITION
+#ifdef CONFIG_KCOV
+	u64 kcov_handle;
+#endif
+	// END ADDITION
 };
 
 struct user_msghdr {
@@ -171,6 +177,25 @@ static inline size_t msg_data_left(struct msghdr *msg)
 {
 	return iov_iter_count(&msg->msg_iter);
 }
+
+// ADDITION
+static inline void msghdr_set_kcov_handle(struct msghdr *msg,
+                                       const u64 kcov_handle)
+{
+#ifdef CONFIG_KCOV
+        msg->kcov_handle = kcov_handle;
+#endif
+}
+
+static inline u64 msghdr_get_kcov_handle(struct msghdr *msg)
+{
+#ifdef CONFIG_KCOV
+        return msg->kcov_handle;
+#else
+        return 0;
+#endif
+}
+// END ADDITION
 
 /* "Socket"-level control message types: */
 

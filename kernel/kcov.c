@@ -566,6 +566,8 @@ static inline bool kcov_check_handle(u64 handle, bool common_valid,
 			common_valid : zero_valid;
 	case KCOV_SUBSYSTEM_USB:
 		return uncommon_valid;
+	case KCOV_SUBSYSTEM_NVME:
+    	return uncommon_valid;
 	default:
 		return false;
 	}

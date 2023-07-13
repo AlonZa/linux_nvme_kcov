@@ -39,6 +39,10 @@
 #include <net/net_debug.h>
 #include <net/dropreason-core.h>
 
+// ADDITION
+#include <uapi/linux/kcov.h>
+// END ADDITION
+
 /**
  * DOC: skb checksums
  *
@@ -3936,9 +3940,23 @@ __poll_t datagram_poll(struct file *file, struct socket *sock,
 			   struct poll_table_struct *wait);
 int skb_copy_datagram_iter(const struct sk_buff *from, int offset,
 			   struct iov_iter *to, int size);
-static inline int skb_copy_datagram_msg(const struct sk_buff *from, int offset,
+
+// ADDITION
+static inline u64 skb_get_kcov_handle(struct sk_buff *skb);
+static inline void skb_set_kcov_handle(struct sk_buff *skb, const u64 kcov_handle);
+// END ADDITION
+
+//static inline int skb_copy_datagram_msg(const struct sk_buff *from, int offset,
+//					struct msghdr *msg, int size)
+static inline int skb_copy_datagram_msg(struct sk_buff *from, int offset,
 					struct msghdr *msg, int size)
 {
+	// ADDITION
+#ifdef CONFIG_KCOV
+       msghdr_set_kcov_handle(msg, skb_get_kcov_handle(from));
+#endif
+	// END ADDITION
+
 	return skb_copy_datagram_iter(from, offset, &msg->msg_iter, size);
 }
 int skb_copy_and_csum_datagram_msg(struct sk_buff *skb, int hlen,

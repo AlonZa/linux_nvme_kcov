@@ -348,6 +348,8 @@ u16 nvmet_parse_connect_cmd(struct nvmet_req *req)
 {
 	struct nvme_command *cmd = req->cmd;
 
+	printk("[AZ] [nvmet_parse_connect_cmd]: entered function\n");
+
 	if (!nvme_is_fabrics(cmd)) {
 		pr_debug("invalid command 0x%x on unconnected queue.\n",
 			cmd->fabrics.opcode);

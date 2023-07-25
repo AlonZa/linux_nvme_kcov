@@ -1109,6 +1109,7 @@ static int nvmet_tcp_try_recv_pdu(struct nvmet_tcp_queue *queue)
 	int len;
 	struct kvec iov;
 	struct msghdr msg = { .msg_flags = MSG_DONTWAIT };
+	int kcov_started = 0;
 
 	// ADDITION
 	int res;
@@ -1123,7 +1124,10 @@ recv:
 
 	// ADDITION
 	printk("[AZ]: msg->kcov_handle == %lld\n", msghdr_get_kcov_handle(&msg));
-	kcov_remote_start_common(msghdr_get_kcov_handle(&msg));
+	if (!kcov_started) {
+		kcov_started = 1;
+		kcov_remote_start_common(msghdr_get_kcov_handle(&msg));
+	}
 	// END ADDITION
 
 	if (unlikely(len < 0)) {
@@ -1149,6 +1153,8 @@ recv:
 		}
 
 		if (unlikely(hdr->hlen != nvmet_tcp_pdu_size(hdr->type))) {
+			printk("[AZ]: hdr->hlen == %d\n", hdr->hlen);
+			printk("[AZ]: hdr->type == %d and its pdu size is %d\n", hdr->type, nvmet_tcp_pdu_size(hdr->type));
 			pr_err("pdu %d bad hlen %d\n", hdr->type, hdr->hlen);
 			kcov_remote_stop();
 			return -EIO;
